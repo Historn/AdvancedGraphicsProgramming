@@ -48,6 +48,36 @@ struct VertexV3V2
     glm::vec2 uv;
 };
 
+struct VertexBufferAttribute
+{
+    u8 location;
+    u8 componentCount;
+    u8 offset;
+};
+
+struct VertexShaderAttribute
+{
+    u8 location;
+    u8 componentCount;
+};
+
+struct VertexBufferLayout
+{
+    std::vector<VertexBufferAttribute> attributes;
+    u8 stride;
+};
+
+struct VertexShaderLayout
+{
+    std::vector<VertexShaderAttribute> attributes;
+};
+
+struct Vao
+{
+    GLuint handle;
+    GLuint programHandle;
+};
+
 struct App
 {
     // Loop
@@ -68,6 +98,7 @@ struct App
 
     // program indices
     u32 texturedGeometryProgramIdx;
+    u32 texturedMeshProgramIdx;
     
     // texture indices
     u32 diceTexIdx;

@@ -8,14 +8,18 @@
 // TODO: Write your vertex shader here
 
 layout(location = 0) in vec3 aPosition;
-layout(location = 1) in vec2 aTexCoord;
+layout(location = 2) in vec2 aTexCoord;
 
 out vec2 vTexCoord;
 
 void main()
 {
+
+	float clippingScale = 5.0;
+
 	vTexCoord = aTexCoord;
-	gl_Position = vec4(aPosition, 1.0);
+	gl_Position = vec4(aPosition, clippingScale);
+	gl_Position.z = -gl_Position.z;
 }
 
 #elif defined(FRAGMENT) ///////////////////////////////////////////////
