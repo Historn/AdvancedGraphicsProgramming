@@ -51,6 +51,9 @@
     <ClCompile Include="ThirdParty\stb\stb.cpp">
       <Filter>Stb</Filter>
     </ClCompile>
+    <ClCompile Include="Code\assimp_model_loading.cpp">
+      <Filter>Engine</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ThirdParty\imgui-docking\imconfig.h">

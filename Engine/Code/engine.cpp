@@ -178,6 +178,54 @@ u32 LoadTexture2D(App* app, const char* filepath)
     }
 }
 
+GLuint FindVAO(Mesh& mesh, u32 submeshIndex, const Program& program)
+{
+    Submesh& submesh = mesh.submeshes[submeshIndex];
+    for (u32 i = 0; i < (u32)submesh.vaos.size(); ++i)
+    {
+        if (submesh.vaos[i].programHandle == program.handle)
+        {
+            return submesh.vaos[i].handle;
+        }
+    }
+
+    GLuint vaoHandle = 0;
+
+    glGenVertexArrays(1, &vaoHandle);
+    glBindVertexArray(vaoHandle);
+
+    glBindBuffer(GL_ARRAY_BUFFER, mesh.vertexBufferHandle);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.indexBufferHandle);
+
+    for (u32 i = 0; i < program.vertexInputLayout.attributes.size(); ++i)
+    {
+        bool attributeWasLinked = false;
+
+        for (u32 j = 0; j < submesh.vertexBufferLayout.attributes.size(); ++j)
+        {
+            if (program.vertexInputLayout.attributes[i].location == submesh.vertexBufferLayout.attributes[j].location)
+            {
+                const u32 index = submesh.vertexBufferLayout.attributes[j].location;
+                const u32 ncomp = submesh.vertexBufferLayout.attributes[j].componentCount;
+                const u32 offset = submesh.vertexBufferLayout.attributes[j].offset + submesh.vertexOffset;
+                const u32 stride = submesh.vertexBufferLayout.stride;
+                glVertexAttribPointer(index, ncomp, GL_FLOAT, GL_FALSE, stride, (void*)(u64)offset);
+                glEnableVertexAttribArray(index);
+
+                attributeWasLinked = true;
+                break;
+            }
+        }
+        assert(attributeWasLinked);
+    }
+    glBindVertexArray(0);
+
+    Vao vao = { vaoHandle, program.handle };
+    submesh.vaos.push_back(vao);
+
+    return vaoHandle;
+}
+
 void Init(App* app)
 {
     // TODO: Initialize your resources here!
@@ -226,14 +274,12 @@ void Init(App* app)
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, app->embeddedElements);
     glBindVertexArray(0);
 
-    app->texturedGeometryProgramIdx = LoadProgram(app, "shaders.glsl", "TEXTURED_GEOMETRY"); // Name established also in .glsl file
-    Program& texturedGeometryProgram = app->programs[app->texturedGeometryProgramIdx];
-    app->programUniformTexture = glGetUniformLocation(texturedGeometryProgram.handle, "uTexture");
+    //app->texturedGeometryProgramIdx = LoadProgram(app, "shaders.glsl", "TEXTURED_GEOMETRY"); // Name established also in .glsl file
+    //Program& texturedGeometryProgram = app->programs[app->texturedGeometryProgramIdx];
+    //app->programUniformTexture = glGetUniformLocation(texturedGeometryProgram.handle, "uTexture");
     
     app->texturedMeshProgramIdx = LoadProgram(app, "shaders.glsl", "SHOW_TEXTURED_MESH"); // Name established also in .glsl file
     Program& texturedMeshProgram = app->programs[app->texturedMeshProgramIdx];
-    texturedMeshProgram.v
-    app->programUniformTexture = glGetUniformLocation(texturedGeometryProgram.handle, "uTexture");
 
     app->diceTexIdx = LoadTexture2D(app, "dice.png");
     app->whiteTexIdx = LoadTexture2D(app, "color_white.png");
@@ -290,20 +336,40 @@ void Render(App* app)
 
                 glViewport(0, 0, app->displaySize.x, app->displaySize.y);
 
-                Program& programTexturedGeometry = app->programs[app->texturedGeometryProgramIdx];
-                glUseProgram(programTexturedGeometry.handle);
-                glBindVertexArray(app->vao);
+                Program& texturedMeshProgram = app->programs[app->texturedMeshProgramIdx];
+                glUseProgram(texturedMeshProgram.handle);
 
-                glEnable(GL_BLEND);
-                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+                Model& model = app->models[app->model];
+                Mesh& mesh = app->meshes[model.meshIdx];
 
-                glUniform1i(app->programUniformTexture, 0);
-                glActiveTexture(GL_TEXTURE0);
+                for (u32 i = 0; i < mesh.submeshes.size(); ++i)
+                {
+                    GLuint vao = FindVAO(mesh, i, texturedMeshProgram);
+                    glBindVertexArray(app->vao);
 
-                GLuint textureHandle = app->textures[app->diceTexIdx].handle;
-                glBindTexture(GL_TEXTURE_2D, textureHandle);
+                    u32 submeshMaterialIdx = model.materialIdx[i];
+                    Material& submeshMaterial = app->materials[submeshMaterialIdx];
 
-                glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
+                    glActiveTexture(GL_TEXTURE0);
+                    glBindTexture(GL_TEXTURE_2D, app->textures[submeshMaterial.albedoTextureIdx].handle);
+                    glUniform1i(app->texturedMeshProgram_uTexture, 0);
+
+                    Submesh& submesh = mesh.submeshes[i];
+                    glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)(u64)submesh.indexOffset);
+                }
+
+                //glBindVertexArray(app->vao);
+                //
+                //glEnable(GL_BLEND);
+                //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+                //glUniform1i(app->programUniformTexture, 0);
+                //glActiveTexture(GL_TEXTURE0);
+                //
+                //GLuint textureHandle = app->textures[app->diceTexIdx].handle;
+                //glBindTexture(GL_TEXTURE_2D, textureHandle);
+                //
+                //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
 
                 glBindVertexArray(0);
                 glUseProgram(0);

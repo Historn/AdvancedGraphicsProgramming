@@ -14,40 +14,6 @@ typedef glm::ivec2 ivec2;
 typedef glm::ivec3 ivec3;
 typedef glm::ivec4 ivec4;
 
-struct Image
-{
-    void* pixels;
-    ivec2 size;
-    i32   nchannels;
-    i32   stride;
-};
-
-struct Texture
-{
-    GLuint      handle;
-    std::string filepath;
-};
-
-struct Program
-{
-    GLuint             handle;
-    std::string        filepath;
-    std::string        programName;
-    u64                lastWriteTimestamp; // What is this for?
-};
-
-enum Mode
-{
-    Mode_TexturedQuad,
-    Mode_Count
-};
-
-struct VertexV3V2 
-{
-    glm::vec3 pos;
-    glm::vec2 uv;
-};
-
 struct VertexBufferAttribute
 {
     u8 location;
@@ -78,6 +44,77 @@ struct Vao
     GLuint programHandle;
 };
 
+struct Image
+{
+    void* pixels;
+    ivec2 size;
+    i32   nchannels;
+    i32   stride;
+};
+
+struct Texture
+{
+    GLuint      handle;
+    std::string filepath;
+};
+
+struct Material 
+{
+    std::string name;
+    vec3 albedo;
+    vec3 emissive;
+    f32 smoothness;
+    u32 albedoTextureIdx;
+    u32 emissiveTextureIdx;
+    u32 specularTextureIdx;
+    u32 normalsTextureIdx;
+    u32 bumpTextureIdx;
+};
+
+struct Submesh
+{
+    VertexBufferLayout vertexBufferLayout;
+    std::vector<float> vertices;
+    std::vector<u32> indices;
+    u32 vertexOffset;
+    u32 indexOffset;
+    std::vector<Vao> vaos;
+};
+
+struct Mesh
+{
+    std::vector<Submesh> submeshes;
+    GLuint vertexBufferHandle;
+    GLuint indexBufferHandle;
+};
+
+struct Model
+{
+    u32 meshIdx;
+    std::vector<u32> materialIdx;
+};
+
+struct Program
+{
+    GLuint             handle;
+    std::string        filepath;
+    std::string        programName;
+    u64                lastWriteTimestamp; // What is this for?
+    VertexShaderLayout vertexInputLayout;
+};
+
+enum Mode
+{
+    Mode_TexturedQuad,
+    Mode_Count
+};
+
+struct VertexV3V2 
+{
+    glm::vec3 pos;
+    glm::vec2 uv;
+};
+
 struct App
 {
     // Loop
@@ -93,8 +130,11 @@ struct App
 
     ivec2 displaySize;
 
-    std::vector<Texture>  textures;
-    std::vector<Program>  programs;
+    std::vector<Texture>    textures;
+    std::vector<Material>   materials;
+    std::vector<Mesh>       meshes;
+    std::vector<Model>      models;
+    std::vector<Program>    programs;
 
     // program indices
     u32 texturedGeometryProgramIdx;
@@ -117,6 +157,7 @@ struct App
 
     // Location of the texture uniform in the textured quad shader
     GLuint programUniformTexture;
+    GLuint texturedMeshProgram_uTexture;
 
     // VAO object to link our screen filling quad with our textured quad shader
     GLuint vao;
