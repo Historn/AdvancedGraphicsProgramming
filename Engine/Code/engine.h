@@ -21,16 +21,16 @@ struct VertexBufferAttribute
     u8 offset;
 };
 
-struct VertexShaderAttribute
-{
-    u8 location;
-    u8 componentCount;
-};
-
 struct VertexBufferLayout
 {
     std::vector<VertexBufferAttribute> attributes;
     u8 stride;
+};
+
+struct VertexShaderAttribute
+{
+    u8 location;
+    u8 componentCount;
 };
 
 struct VertexShaderLayout
@@ -58,17 +58,10 @@ struct Texture
     std::string filepath;
 };
 
-struct Material 
+struct Model
 {
-    std::string name;
-    vec3 albedo;
-    vec3 emissive;
-    f32 smoothness;
-    u32 albedoTextureIdx;
-    u32 emissiveTextureIdx;
-    u32 specularTextureIdx;
-    u32 normalsTextureIdx;
-    u32 bumpTextureIdx;
+    u32 meshIdx;
+    std::vector<u32> materialIdx;
 };
 
 struct Submesh
@@ -88,10 +81,17 @@ struct Mesh
     GLuint indexBufferHandle;
 };
 
-struct Model
+struct Material
 {
-    u32 meshIdx;
-    std::vector<u32> materialIdx;
+    std::string name;
+    vec3 albedo;
+    vec3 emissive;
+    f32 smoothness;
+    u32 albedoTextureIdx;
+    u32 emissiveTextureIdx;
+    u32 specularTextureIdx;
+    u32 normalsTextureIdx;
+    u32 bumpTextureIdx;
 };
 
 struct Program
@@ -106,6 +106,7 @@ struct Program
 enum Mode
 {
     Mode_TexturedQuad,
+    Mode_TexturedMesh,
     Mode_Count
 };
 
@@ -154,6 +155,8 @@ struct App
     // a screen filling quad, a cube, a sphere...)
     GLuint embeddedVertices;
     GLuint embeddedElements;
+
+    GLuint model;
 
     // Location of the texture uniform in the textured quad shader
     GLuint programUniformTexture;
