@@ -13,7 +13,7 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 
-GLuint CreateProgramFromSource(String programSource, const char* shaderName)
+GLuint CreateProgramFromSource(String programSource, const char* shaderName, VertexShaderLayout& vertexInputLayout)
 {
 	GLchar  infoLogBuffer[1024] = {};
 	GLsizei infoLogBufferSize = sizeof(infoLogBuffer);
@@ -82,6 +82,44 @@ GLuint CreateProgramFromSource(String programSource, const char* shaderName)
 		ELOG("glLinkProgram() failed with program %s\nReported message:\n%s\n", shaderName, infoLogBuffer);
 	}
 
+	GLint attributeCount;
+	char attributeName[128];
+	GLint attributeNameLength;
+	GLint attributeSize;
+	GLenum attributeType;
+	GLint attributeLocation;
+
+	vertexInputLayout = VertexShaderLayout{};
+
+	glGetProgramiv(programHandle, GL_ACTIVE_ATTRIBUTES, &attributeCount);
+	for (u32 i = 0; i < attributeCount; ++i)
+	{
+		glGetActiveAttrib(programHandle, i,
+			ARRAY_COUNT(attributeName),
+			&attributeNameLength,
+			&attributeSize,
+			&attributeType,
+			attributeName);
+
+		attributeLocation = glGetAttribLocation(programHandle, attributeName);
+
+		// Store this information in the program's vertexInputLayout
+		VertexShaderAttribute attribute;
+		attribute.location = attributeLocation;
+
+		// Set componentCount based on attributeType
+		switch (attributeType)
+		{
+		case GL_FLOAT:      attribute.componentCount = 1; break;
+		case GL_FLOAT_VEC2: attribute.componentCount = 2; break;
+		case GL_FLOAT_VEC3: attribute.componentCount = 3; break;
+		case GL_FLOAT_VEC4: attribute.componentCount = 4; break;
+		default:            attribute.componentCount = 0; break;
+		}
+
+		vertexInputLayout.attributes.push_back(attribute);
+	}
+
 	glUseProgram(0);
 
 	glDetachShader(programHandle, vshader);
@@ -97,7 +135,7 @@ u32 LoadProgram(App* app, const char* filepath, const char* programName)
 	String programSource = ReadTextFile(filepath);
 
 	Program program = {};
-	program.handle = CreateProgramFromSource(programSource, programName);
+	program.handle = CreateProgramFromSource(programSource, programName, program.vertexInputLayout);
 	program.filepath = filepath;
 	program.programName = programName;
 	program.lastWriteTimestamp = GetFileLastWriteTimestamp(filepath);
@@ -491,52 +529,6 @@ void Init(App* app)
 		//glDebugMessageCallback(OnGlError, app);
 	}
 
-	const VertexV3V2 vertices[] = {
-		{glm::vec3(-0.5, -0.5, 0.0), glm::vec2(0.0, 0.0)}, // bottom-left vertex
-		{glm::vec3(0.5, -0.5, 0.0), glm::vec2(1.0, 0.0)}, // bottom-right vertex
-		{glm::vec3(0.5, 0.5, 0.0), glm::vec2(1.0, 1.0)}, // top-right vertex
-		{glm::vec3(-0.5, 0.5, 0.0), glm::vec2(0.0, 1.0)}, // top-left vertex
-	};
-
-	const u16 indices[] = {
-		0, 1, 2,
-		0, 2, 3
-	};
-
-	// Geometry Initialization
-	/*glGenBuffers(1, &app->embeddedVertices);
-	glBindBuffer(GL_ARRAY_BUFFER, app->embeddedVertices);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-	glGenBuffers(1, &app->embeddedElements);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, app->embeddedElements);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);*/
-
-	// Attribute State
-	/*glGenVertexArrays(1, &app->vao);
-	glBindVertexArray(app->vao);
-	glBindBuffer(GL_ARRAY_BUFFER, app->embeddedVertices);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(VertexV3V2), (void*)0);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(VertexV3V2), (void*)12);
-	glEnableVertexAttribArray(1);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, app->embeddedElements);
-	glBindVertexArray(0);*/
-
-	//app->texturedGeometryProgramIdx = LoadProgram(app, "shaders.glsl", "TEXTURED_GEOMETRY"); // Name established also in .glsl file
-	//Program& texturedGeometryProgram = app->programs[app->texturedGeometryProgramIdx];
-	//app->programUniformTexture = glGetUniformLocation(texturedGeometryProgram.handle, "uTexture");
-
-	//app->diceTexIdx = LoadTexture2D(app, "dice.png");
-	//app->whiteTexIdx = LoadTexture2D(app, "color_white.png");
-	//app->blackTexIdx = LoadTexture2D(app, "color_black.png");
-	//app->normalTexIdx = LoadTexture2D(app, "color_normal.png");
-	//app->magentaTexIdx = LoadTexture2D(app, "color_magenta.png");
-
-	//app->mode = Mode_TexturedQuad;
-
 	app->model = LoadModel(app, "Patrick/Patrick.obj");
 
 	app->texturedMeshProgramIdx = LoadProgram(app, "shaders.glsl", "SHOW_TEXTURED_MESH"); // Name established also in .glsl file
@@ -564,7 +556,7 @@ void Update(App* app)
 			glDeleteProgram(program.handle);
 			String programSource = ReadTextFile(program.filepath.c_str());
 			const char* programName = program.programName.c_str();
-			program.handle = CreateProgramFromSource(programSource, programName);
+			program.handle = CreateProgramFromSource(programSource, programName, program.vertexInputLayout);
 			program.lastWriteTimestamp = currentTimestamp;
 		}
 	}
@@ -639,8 +631,8 @@ void Render(App* app)
 			glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)(u64)submesh.indexOffset);
 		}
 
-		glBindVertexArray(0);
-		glUseProgram(0);
+		//glBindVertexArray(0);
+		//glUseProgram(0);
 	}
 	break;
 

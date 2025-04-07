@@ -1,28 +1,34 @@
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
-#ifdef TEXTURED_GEOMETRY
+#ifdef SHOW_TEXTURED_MESH
 
 #if defined(VERTEX) ///////////////////////////////////////////////////
 
 // TODO: Write your vertex shader here
 
 layout(location = 0) in vec3 aPosition;
-//layout(location = 1) in vec3 aNormal;
+layout(location = 1) in vec3 aNormal;
 layout(location = 2) in vec2 aTexCoord;
-//layout(location = 3) in vec2 aTangent;
-//layout(location = 4) in vec2 aBitangent;
+layout(location = 3) in vec3 aTangent;
+layout(location = 4) in vec3 aBitangent;
 
 out vec2 vTexCoord;
 
 void main()
 {
+	vTexCoord = aTexCoord;
 
 	float clippingScale = 5.0;
-
-	vTexCoord = aTexCoord;
+	
 	gl_Position = vec4(aPosition, clippingScale);
 	gl_Position.z = -gl_Position.z;
+
+	// For now, use a simple transformation to make the object visible
+    //vec3 position = aPosition;
+    //position.z -= 2.0; // Move it back so it's visible
+    //
+    //gl_Position = vec4(position, 1.0);
 }
 
 #elif defined(FRAGMENT) ///////////////////////////////////////////////

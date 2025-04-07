@@ -1,3 +1,1 @@
-C:\Users\rodrigopl2\Downloads\EngineTemplate\Engine\x64\Debug\Engine.exe
-C:\Users\arnaujg\Downloads\Engine\Engine\x64\Debug\Engine.exe
 C:\Users\Arnau\Documents\CITM\Year4\GraphicsProgramming\Repo\AdvancedGraphicsProgramming\Engine\x64\Debug\Engine.exe
