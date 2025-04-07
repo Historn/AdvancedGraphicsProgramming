@@ -13,22 +13,25 @@ layout(location = 2) in vec2 aTexCoord;
 layout(location = 3) in vec3 aTangent;
 layout(location = 4) in vec3 aBitangent;
 
+uniform mat4 uModel;
+uniform mat4 uView;
+uniform mat4 uProjection;
+
 out vec2 vTexCoord;
+out vec3 vPosition;
+out vec3 vNormal;
 
 void main()
 {
+	vec4 worldPosition = uModel * vec4(aPosition, 1.0);
+    vPosition = worldPosition.xyz;
+
 	vTexCoord = aTexCoord;
 
-	float clippingScale = 5.0;
-	
-	gl_Position = vec4(aPosition, clippingScale);
-	gl_Position.z = -gl_Position.z;
+	vNormal = mat3(transpose(inverse(uModel))) * aNormal; // For correct normal transformation
 
-	// For now, use a simple transformation to make the object visible
-    //vec3 position = aPosition;
-    //position.z -= 2.0; // Move it back so it's visible
-    //
-    //gl_Position = vec4(position, 1.0);
+    // Set final position in clip space
+    gl_Position = uProjection * uView * worldPosition;
 }
 
 #elif defined(FRAGMENT) ///////////////////////////////////////////////
@@ -36,6 +39,8 @@ void main()
 // TODO: Write your fragment shader here
 
 in vec2 vTexCoord;
+in vec3 vPosition;
+in vec3 vNormal;
 
 uniform sampler2D uTexture;
 

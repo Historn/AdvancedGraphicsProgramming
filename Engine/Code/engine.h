@@ -14,6 +14,12 @@ typedef glm::ivec2 ivec2;
 typedef glm::ivec3 ivec3;
 typedef glm::ivec4 ivec4;
 
+struct Entity
+{
+    u32 modelIdx;
+    glm::mat4 transform;
+};
+
 struct VertexBufferAttribute
 {
     u8 location;
@@ -160,10 +166,29 @@ struct App
 
     // Location of the texture uniform in the textured quad shader
     GLuint programUniformTexture;
-    GLuint texturedMeshProgram_uTexture;
-
+ 
     // VAO object to link our screen filling quad with our textured quad shader
     GLuint vao;
+
+    // Entities to handle multiple objects
+    std::vector<Entity> entities;
+
+    // Matrices for transformations
+    glm::mat4 modelMatrix;
+    glm::mat4 viewMatrix;
+    glm::mat4 projectionMatrix;
+
+    // Uniform locations
+    GLuint modelMatrixLocation;
+    GLuint viewMatrixLocation;
+    GLuint projectionMatrixLocation;
+    GLuint texturedMeshProgram_uTexture;
+
+    // Camera properties
+    vec3 cameraPosition;
+    vec3 cameraTarget;
+    vec3 cameraUp;
+    float cameraFov;
 };
 
 void Init(App* app);

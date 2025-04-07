@@ -529,10 +529,36 @@ void Init(App* app)
 		//glDebugMessageCallback(OnGlError, app);
 	}
 
+	// Initialize transformation matrices
+	app->modelMatrix = glm::mat4(1.0f); // Identity matrix
+
+	// Set up camera
+	app->cameraPosition = glm::vec3(0.0f, 2.0f, 5.0f);
+	app->cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f);
+	app->cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
+	app->cameraFov = 45.0f;
+
+	// Create view matrix
+	app->viewMatrix = glm::lookAt(app->cameraPosition, app->cameraTarget, app->cameraUp);
+
+	// Create projection matrix
+	float aspectRatio = (float)app->displaySize.x / (float)app->displaySize.y;
+	app->projectionMatrix = glm::perspective(glm::radians(app->cameraFov), aspectRatio, 0.1f, 100.0f);
+
 	app->model = LoadModel(app, "Patrick/Patrick.obj");
+
+	// Create an entity for the model and add it to entities collection
+	Entity entity;
+	entity.modelIdx = app->model;
+	entity.transform = app->modelMatrix; // Use the model matrix as the initial transform
+	app->entities.push_back(entity);
 
 	app->texturedMeshProgramIdx = LoadProgram(app, "shaders.glsl", "SHOW_TEXTURED_MESH"); // Name established also in .glsl file
 	Program& texturedMeshProgram = app->programs[app->texturedMeshProgramIdx];
+	app->modelMatrixLocation = glGetUniformLocation(texturedMeshProgram.handle, "uModel");
+	app->viewMatrixLocation = glGetUniformLocation(texturedMeshProgram.handle, "uView");
+	app->projectionMatrixLocation = glGetUniformLocation(texturedMeshProgram.handle, "uProjection");
+	app->texturedMeshProgram_uTexture = glGetUniformLocation(texturedMeshProgram.handle, "uTexture");
 
 	app->mode = Mode_TexturedMesh;
 }
@@ -541,6 +567,33 @@ void Gui(App* app)
 {
 	ImGui::Begin("Info");
 	ImGui::Text("FPS: %f", 1.0f / app->deltaTime);
+	// Add transformation controls
+	static float position[3] = { 0.0f, 0.0f, 0.0f };
+	static float rotation[3] = { 0.0f, 0.0f, 0.0f };
+	static float scale[3] = { 1.0f, 1.0f, 1.0f };
+
+	if (ImGui::SliderFloat3("Position", position, -10.0f, 10.0f))
+	{
+		// Reset and apply transformations in order: scale, rotate, translate
+		app->modelMatrix = glm::mat4(1.0f);
+		app->modelMatrix = glm::translate(app->modelMatrix, glm::vec3(position[0], position[1], position[2]));
+		app->modelMatrix = glm::rotate(app->modelMatrix, glm::radians(rotation[0]), glm::vec3(1.0f, 0.0f, 0.0f));
+		app->modelMatrix = glm::rotate(app->modelMatrix, glm::radians(rotation[1]), glm::vec3(0.0f, 1.0f, 0.0f));
+		app->modelMatrix = glm::rotate(app->modelMatrix, glm::radians(rotation[2]), glm::vec3(0.0f, 0.0f, 1.0f));
+		app->modelMatrix = glm::scale(app->modelMatrix, glm::vec3(scale[0], scale[1], scale[2]));
+	}
+
+	if (ImGui::SliderFloat3("Rotation", rotation, 0.0f, 360.0f) ||
+		ImGui::SliderFloat3("Scale", scale, 0.1f, 5.0f))
+	{
+		// Same transformation code as above
+		app->modelMatrix = glm::mat4(1.0f);
+		app->modelMatrix = glm::translate(app->modelMatrix, glm::vec3(position[0], position[1], position[2]));
+		app->modelMatrix = glm::rotate(app->modelMatrix, glm::radians(rotation[0]), glm::vec3(1.0f, 0.0f, 0.0f));
+		app->modelMatrix = glm::rotate(app->modelMatrix, glm::radians(rotation[1]), glm::vec3(0.0f, 1.0f, 0.0f));
+		app->modelMatrix = glm::rotate(app->modelMatrix, glm::radians(rotation[2]), glm::vec3(0.0f, 0.0f, 1.0f));
+		app->modelMatrix = glm::scale(app->modelMatrix, glm::vec3(scale[0], scale[1], scale[2]));
+	}
 	ImGui::End();
 }
 
@@ -560,6 +613,26 @@ void Update(App* app)
 			program.lastWriteTimestamp = currentTimestamp;
 		}
 	}
+
+	// Rotate model around Y axis
+	float rotationSpeed = 1.0f;
+	app->modelMatrix = glm::rotate(app->modelMatrix, app->deltaTime * rotationSpeed, glm::vec3(0.0f, 1.0f, 0.0f));
+
+	if (!app->entities.empty()) {
+		app->entities[0].transform = app->modelMatrix;
+	}
+
+	// Camera controls
+	if (app->input.keys[K_W])
+	{
+		app->cameraPosition += app->deltaTime * glm::vec3(0.0f, 0.0f, -1.0f);
+		app->viewMatrix = glm::lookAt(app->cameraPosition, app->cameraTarget, app->cameraUp);
+	}
+	if (app->input.keys[K_S])
+	{
+		app->cameraPosition += app->deltaTime * glm::vec3(0.0f, 0.0f, 1.0f);
+		app->viewMatrix = glm::lookAt(app->cameraPosition, app->cameraTarget, app->cameraUp);
+	}
 }
 
 void Render(App* app)
@@ -577,62 +650,59 @@ void Render(App* app)
 		//   (...and make its texture sample from unit 0)
 		// - bind the vao
 		// - glDrawElements() !!!
-
-		/*glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		glViewport(0, 0, app->displaySize.x, app->displaySize.y);
-
-		Program& texturedMeshProgram = app->programs[app->texturedMeshProgramIdx];
-		glUseProgram(texturedMeshProgram.handle);*/
-
-		//glBindVertexArray(app->vao);
-		//
-		//glEnable(GL_BLEND);
-		//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-		//glUniform1i(app->programUniformTexture, 0);
-		//glActiveTexture(GL_TEXTURE0);
-		//
-		//GLuint textureHandle = app->textures[app->diceTexIdx].handle;
-		//glBindTexture(GL_TEXTURE_2D, textureHandle);
-		//
-		//glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_SHORT, 0);
-
-		/*glBindVertexArray(0);
-		glUseProgram(0);*/
 	}
 	case Mode_TexturedMesh:
 	{
 		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+		// Enable depth testing for 3D models
+		glEnable(GL_DEPTH_TEST);
+
 		glViewport(0, 0, app->displaySize.x, app->displaySize.y);
 
 		Program& texturedMeshProgram = app->programs[app->texturedMeshProgramIdx];
 		glUseProgram(texturedMeshProgram.handle);
 
-		Model& model = app->models[app->model];
-		Mesh& mesh = app->meshes[model.meshIdx];
+		// Update projection matrix in case window was resized
+		float aspectRatio = (float)app->displaySize.x / (float)app->displaySize.y;
+		app->projectionMatrix = glm::perspective(glm::radians(app->cameraFov), aspectRatio, 0.1f, 100.0f);
 
-		for (u32 i = 0; i < mesh.submeshes.size(); ++i)
+		// Pass matrices to shader
+		glUniformMatrix4fv(app->viewMatrixLocation, 1, GL_FALSE, glm::value_ptr(app->viewMatrix));
+		glUniformMatrix4fv(app->projectionMatrixLocation, 1, GL_FALSE, glm::value_ptr(app->projectionMatrix));
+
+		for (const Entity& entity : app->entities)
 		{
-			GLuint vao = FindVAO(mesh, i, texturedMeshProgram);
-			glBindVertexArray(vao);
+			// Set model matrix for this entity
+			glUniformMatrix4fv(app->modelMatrixLocation, 1, GL_FALSE, glm::value_ptr(entity.transform));
 
-			u32 submeshMaterialIdx = model.materialIdx[i];
-			Material& submeshMaterial = app->materials[submeshMaterialIdx];
+			Model& entityModel = app->models[entity.modelIdx];
+			Mesh& entityMesh = app->meshes[entityModel.meshIdx];
 
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, app->textures[submeshMaterial.albedoTextureIdx].handle);
-			glUniform1i(app->texturedMeshProgram_uTexture, 0);
+			for (u32 i = 0; i < entityMesh.submeshes.size(); ++i)
+			{
+				GLuint vao = FindVAO(entityMesh, i, texturedMeshProgram);
+				glBindVertexArray(vao);
 
-			Submesh& submesh = mesh.submeshes[i];
-			glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)(u64)submesh.indexOffset);
+				u32 submeshMaterialIdx = entityModel.materialIdx[i];
+				Material& submeshMaterial = app->materials[submeshMaterialIdx];
+
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, app->textures[submeshMaterial.albedoTextureIdx].handle);
+				glUniform1i(app->texturedMeshProgram_uTexture, 0);
+
+				Submesh& submesh = entityMesh.submeshes[i];
+				glDrawElements(GL_TRIANGLES, submesh.indices.size(), GL_UNSIGNED_INT, (void*)(u64)submesh.indexOffset);
+			}
 		}
 
-		//glBindVertexArray(0);
-		//glUseProgram(0);
+		// Disable depth testing when done with 3D rendering
+		glDisable(GL_DEPTH_TEST);
+
+		// Unbind VAO and program
+		glBindVertexArray(0);
+		glUseProgram(0);
 	}
 	break;
 
