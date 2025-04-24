@@ -113,6 +113,8 @@ enum Mode
 {
     Mode_TexturedQuad,
     Mode_TexturedMesh,
+    Mode_Forward,
+    Mode_Deferred,
     Mode_Count
 };
 
@@ -188,12 +190,21 @@ struct App
     vec3 cameraPosition;
     vec3 cameraTarget;
     vec3 cameraUp;
+    vec3 cameraFront;
     float cameraFov;
+
+    // GUI
+    int renderpass_selected = 0;
+    const char* renderpasses[];
 };
 
 void Init(App* app);
 
+void InitGUI(App* app);
+
 void Gui(App* app);
+
+void CameraMovement(App* app);
 
 void Update(App* app);
 

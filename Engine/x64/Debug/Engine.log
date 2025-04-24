@@ -1,3 +1,5 @@
 ﻿  engine.cpp
+C:\Users\Arnau\Documents\CITM\Year4\GraphicsProgramming\Repo\AdvancedGraphicsProgramming\Engine\Code\engine.h(196,17): warning C4200: nonstandard extension used: zero-sized array in struct/union
+C:\Users\Arnau\Documents\CITM\Year4\GraphicsProgramming\Repo\AdvancedGraphicsProgramming\Engine\Code\engine.h(196,17): message : This member will be ignored by a defaulted constructor or copy/move assignment operator
 C:\Users\Arnau\Documents\CITM\Year4\GraphicsProgramming\Repo\AdvancedGraphicsProgramming\Engine\Code\engine.cpp(95,20): warning C4018: '<': signed/unsigned mismatch
   Engine.vcxproj -> C:\Users\Arnau\Documents\CITM\Year4\GraphicsProgramming\Repo\AdvancedGraphicsProgramming\Engine\x64\Debug\Engine.exe

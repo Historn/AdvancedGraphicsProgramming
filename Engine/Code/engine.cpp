@@ -529,14 +529,17 @@ void Init(App* app)
 		//glDebugMessageCallback(OnGlError, app);
 	}
 
+	InitGUI(app);
+
 	// Initialize transformation matrices
 	app->modelMatrix = glm::mat4(1.0f); // Identity matrix
 
 	// Set up camera
-	app->cameraPosition = glm::vec3(0.0f, 2.0f, 5.0f);
-	app->cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f);
+	app->cameraPosition = glm::vec3(0.0f, 1.0f, 8.0f);
+	app->cameraTarget = glm::vec3(0.0f, 1.0f, 0.0f);
 	app->cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
-	app->cameraFov = 45.0f;
+	app->cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
+	app->cameraFov = 90.0f;
 
 	// Create view matrix
 	app->viewMatrix = glm::lookAt(app->cameraPosition, app->cameraTarget, app->cameraUp);
@@ -563,6 +566,16 @@ void Init(App* app)
 	app->mode = Mode_TexturedMesh;
 }
 
+void InitGUI(App* app)
+{
+	// Init Combo values for selecting render pass
+	const char* items[] = { "Final", "Albedo", "Normals", "Position", "Depth" };
+	for (u32 i = 0; i < 5; i++)
+	{
+		app->renderpasses[i] = items[i];
+	}
+}
+
 void Gui(App* app)
 {
 	ImGui::Begin("Info");
@@ -572,18 +585,26 @@ void Gui(App* app)
 	static float rotation[3] = { 0.0f, 0.0f, 0.0f };
 	static float scale[3] = { 1.0f, 1.0f, 1.0f };
 
-	if (ImGui::SliderFloat3("Position", position, -10.0f, 10.0f))
+	// Pass in the preview value visible before opening the combo (it could technically be different contents or not pulled from items[])
+	const char* combo_preview_value = app->renderpasses[app->renderpass_selected];
+	ImGuiComboFlags flags = 0;
+	if (ImGui::BeginCombo("Render Passes", combo_preview_value, flags))
 	{
-		// Reset and apply transformations in order: scale, rotate, translate
-		app->modelMatrix = glm::mat4(1.0f);
-		app->modelMatrix = glm::translate(app->modelMatrix, glm::vec3(position[0], position[1], position[2]));
-		app->modelMatrix = glm::rotate(app->modelMatrix, glm::radians(rotation[0]), glm::vec3(1.0f, 0.0f, 0.0f));
-		app->modelMatrix = glm::rotate(app->modelMatrix, glm::radians(rotation[1]), glm::vec3(0.0f, 1.0f, 0.0f));
-		app->modelMatrix = glm::rotate(app->modelMatrix, glm::radians(rotation[2]), glm::vec3(0.0f, 0.0f, 1.0f));
-		app->modelMatrix = glm::scale(app->modelMatrix, glm::vec3(scale[0], scale[1], scale[2]));
+		for (int n = 0; n < 5; n++)
+		{
+			const bool is_selected = (app->renderpass_selected == n);
+			if (ImGui::Selectable(app->renderpasses[n], is_selected))
+				app->renderpass_selected = n;
+
+			// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+			if (is_selected)
+				ImGui::SetItemDefaultFocus();
+		}
+		ImGui::EndCombo();
 	}
 
-	if (ImGui::SliderFloat3("Rotation", rotation, 0.0f, 360.0f) ||
+	// CHANGE FOR ALL THE ENTITIES HANDLING
+	if (ImGui::SliderFloat3("Position", position, -10.0f, 10.0f) || ImGui::SliderFloat3("Rotation", rotation, 0.0f, 360.0f) ||
 		ImGui::SliderFloat3("Scale", scale, 0.1f, 5.0f))
 	{
 		// Same transformation code as above
@@ -597,9 +618,34 @@ void Gui(App* app)
 	ImGui::End();
 }
 
+void CameraMovement(App* app)
+{
+	f32 cameraSpeed = 5.0f * app->deltaTime;
+	// Camera controls
+	if (app->input.keys[K_W])
+	{
+		app->cameraPosition += cameraSpeed * app->cameraFront;
+		app->viewMatrix = glm::lookAt(app->cameraPosition, app->cameraPosition + app->cameraFront, app->cameraUp);
+	}
+	if (app->input.keys[K_S])
+	{
+		app->cameraPosition -= cameraSpeed * app->cameraFront;
+		app->viewMatrix = glm::lookAt(app->cameraPosition, app->cameraPosition + app->cameraFront, app->cameraUp);
+	}
+	if (app->input.keys[K_D])
+	{
+		app->cameraPosition += glm::normalize(glm::cross(app->cameraFront, app->cameraUp)) * cameraSpeed;
+		app->viewMatrix = glm::lookAt(app->cameraPosition, app->cameraPosition + app->cameraFront, app->cameraUp);
+	}
+	if (app->input.keys[K_A])
+	{
+		app->cameraPosition -= glm::normalize(glm::cross(app->cameraFront, app->cameraUp)) * cameraSpeed;
+		app->viewMatrix = glm::lookAt(app->cameraPosition, app->cameraPosition + app->cameraFront, app->cameraUp);
+	}
+}
+
 void Update(App* app)
 {
-	// You can handle app->input keyboard/mouse here
 	for (u64 i = 0; i < app->programs.size(); ++i)
 	{
 		Program& program = app->programs[i];
@@ -615,23 +661,13 @@ void Update(App* app)
 	}
 
 	// Rotate model around Y axis
-	float rotationSpeed = 1.0f;
+	/*float rotationSpeed = 1.0f;
 	app->modelMatrix = glm::rotate(app->modelMatrix, app->deltaTime * rotationSpeed, glm::vec3(0.0f, 1.0f, 0.0f));
+	*/
 
+	// NOT SUPPOSED TO SET THE MODEL MATRIX, SET IN INIT AND CHANGE IT USING THE TRANSFORMATIONS
 	if (!app->entities.empty()) {
 		app->entities[0].transform = app->modelMatrix;
-	}
-
-	// Camera controls
-	if (app->input.keys[K_W])
-	{
-		app->cameraPosition += app->deltaTime * glm::vec3(0.0f, 0.0f, -1.0f);
-		app->viewMatrix = glm::lookAt(app->cameraPosition, app->cameraTarget, app->cameraUp);
-	}
-	if (app->input.keys[K_S])
-	{
-		app->cameraPosition += app->deltaTime * glm::vec3(0.0f, 0.0f, 1.0f);
-		app->viewMatrix = glm::lookAt(app->cameraPosition, app->cameraTarget, app->cameraUp);
 	}
 }
 
@@ -641,22 +677,13 @@ void Render(App* app)
 	{
 	case Mode_TexturedQuad:
 	{
-		// TODO: Draw your textured quad here!
-		// - clear the framebuffer
-		// - set the viewport
-		// - set the blending state
-		// - bind the texture into unit 0
-		// - bind the program 
-		//   (...and make its texture sample from unit 0)
-		// - bind the vao
-		// - glDrawElements() !!!
+		
 	}
 	case Mode_TexturedMesh:
 	{
 		glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		// Enable depth testing for 3D models
 		glEnable(GL_DEPTH_TEST);
 
 		glViewport(0, 0, app->displaySize.x, app->displaySize.y);
@@ -674,7 +701,6 @@ void Render(App* app)
 
 		for (const Entity& entity : app->entities)
 		{
-			// Set model matrix for this entity
 			glUniformMatrix4fv(app->modelMatrixLocation, 1, GL_FALSE, glm::value_ptr(entity.transform));
 
 			Model& entityModel = app->models[entity.modelIdx];
@@ -697,12 +723,22 @@ void Render(App* app)
 			}
 		}
 
-		// Disable depth testing when done with 3D rendering
 		glDisable(GL_DEPTH_TEST);
 
-		// Unbind VAO and program
 		glBindVertexArray(0);
 		glUseProgram(0);
+	}
+	break;
+
+	case Mode_Forward:
+	{
+
+	}
+	break;
+
+	case Mode_Deferred:
+	{
+
 	}
 	break;
 
