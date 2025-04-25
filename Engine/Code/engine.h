@@ -14,10 +14,18 @@ typedef glm::ivec2 ivec2;
 typedef glm::ivec3 ivec3;
 typedef glm::ivec4 ivec4;
 
+struct Transform
+{
+    vec3 position;
+    vec3 rotation;
+    vec3 scale;
+    glm::mat4 transformMatrix;
+};
+
 struct Entity
 {
     u32 modelIdx;
-    glm::mat4 transform;
+    Transform transform;
 };
 
 struct VertexBufferAttribute

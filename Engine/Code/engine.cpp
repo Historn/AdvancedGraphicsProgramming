@@ -555,7 +555,7 @@ void Init(App* app)
 	// Create an entity for the model and add it to entities collection
 	Entity entity;
 	entity.modelIdx = app->model;
-	entity.transform = app->modelMatrix; // Use the model matrix as the initial transform
+	entity.transform.transformMatrix= app->modelMatrix; // Use the model matrix as the initial transform
 	app->entities.push_back(entity);
 
 	app->texturedMeshProgramIdx = LoadProgram(app, "shaders.glsl", "SHOW_TEXTURED_MESH"); // Name established also in .glsl file
@@ -582,15 +582,15 @@ void Gui(App* app)
 {
 	ImGui::Begin("Info");
 	ImGui::Text("FPS: %f", 1.0f / app->deltaTime);
-	// Add transformation controls
+	// Transformation controls
 	static float position[3] = { 0.0f, 0.0f, 0.0f };
 	static float rotation[3] = { 0.0f, 0.0f, 0.0f };
 	static float scale[3] = { 1.0f, 1.0f, 1.0f };
 
-	// Pass in the preview value visible before opening the combo (it could technically be different contents or not pulled from items[])
-	const char* combo_preview_value = app->renderpasses[app->renderpass_selected];
+	
+	const char* combo_value = app->renderpasses[app->renderpass_selected];
 	ImGuiComboFlags flags = 0;
-	if (ImGui::BeginCombo("Render Passes", combo_preview_value, flags))
+	if (ImGui::BeginCombo("Render Passes", combo_value, flags))
 	{
 		for (int n = 0; n < 5; n++)
 		{
@@ -606,8 +606,8 @@ void Gui(App* app)
 	}
 
 	// CHANGE FOR ALL THE ENTITIES HANDLING
-	if (ImGui::SliderFloat3("Position", position, -10.0f, 10.0f) || ImGui::SliderFloat3("Rotation", rotation, 0.0f, 360.0f) ||
-		ImGui::SliderFloat3("Scale", scale, 0.1f, 5.0f))
+	if (ImGui::DragFloat3("Position", position) || ImGui::DragFloat3("Rotation", rotation) ||
+		ImGui::DragFloat3("Scale", scale))
 	{
 		// Same transformation code as above
 		app->modelMatrix = glm::mat4(1.0f);
@@ -691,7 +691,7 @@ void Update(App* app)
 
 	// NOT SUPPOSED TO SET THE MODEL MATRIX, SET IN INIT AND CHANGE IT USING THE TRANSFORMATIONS
 	if (!app->entities.empty()) {
-		app->entities[0].transform = app->modelMatrix;
+		app->entities[0].transform.transformMatrix = app->modelMatrix;
 	}
 
 	CameraMovement(app);
@@ -727,7 +727,7 @@ void Render(App* app)
 
 		for (const Entity& entity : app->entities)
 		{
-			glUniformMatrix4fv(app->modelMatrixLocation, 1, GL_FALSE, glm::value_ptr(entity.transform));
+			glUniformMatrix4fv(app->modelMatrixLocation, 1, GL_FALSE, glm::value_ptr(entity.transform.transformMatrix));
 
 			Model& entityModel = app->models[entity.modelIdx];
 			Mesh& entityMesh = app->meshes[entityModel.meshIdx];
