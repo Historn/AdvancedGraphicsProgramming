@@ -535,18 +535,20 @@ void Init(App* app)
 	app->modelMatrix = glm::mat4(1.0f); // Identity matrix
 
 	// Set up camera
-	app->cameraPosition = glm::vec3(0.0f, 1.0f, 8.0f);
-	app->cameraTarget = glm::vec3(0.0f, 1.0f, 0.0f);
-	app->cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);
-	app->cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-	app->cameraFov = 90.0f;
+	app->camera.position = glm::vec3(0.0f, 1.0f, 8.0f);
+	app->camera.target = glm::vec3(0.0f, 1.0f, 0.0f);
+	app->camera.up = glm::vec3(0.0f, 1.0f, 0.0f);
+	app->camera.front = glm::vec3(0.0f, 0.0f, -1.0f);
+	app->camera.fov = 90.0f;
+	app->camera.yaw = -90.0f;
+	app->camera.pitch = 0.0f;
 
 	// Create view matrix
-	app->viewMatrix = glm::lookAt(app->cameraPosition, app->cameraTarget, app->cameraUp);
+	app->viewMatrix = glm::lookAt(app->camera.position, app->camera.target, app->camera.up);
 
 	// Create projection matrix
 	float aspectRatio = (float)app->displaySize.x / (float)app->displaySize.y;
-	app->projectionMatrix = glm::perspective(glm::radians(app->cameraFov), aspectRatio, 0.1f, 100.0f);
+	app->projectionMatrix = glm::perspective(glm::radians(app->camera.fov), aspectRatio, 0.1f, 100.0f);
 
 	app->model = LoadModel(app, "Patrick/Patrick.obj");
 
@@ -620,27 +622,49 @@ void Gui(App* app)
 
 void CameraMovement(App* app)
 {
+	f32 sensitivity = 10.0f * app->deltaTime;
 	f32 cameraSpeed = 5.0f * app->deltaTime;
-	// Camera controls
+	
+	if (app->input.mouseButtons[1])
+	{
+		app->input.mouseDelta.x *= sensitivity;
+		app->input.mouseDelta.y *= sensitivity;
+
+		app->camera.yaw += app->input.mouseDelta.x;
+		app->camera.pitch -= app->input.mouseDelta.y;
+
+		if (app->camera.pitch > 89.0f)
+			app->camera.pitch = 89.0f;
+		if (app->camera.pitch < -89.0f)
+			app->camera.pitch = -89.0f;
+
+		vec3 direction;
+		direction.x = cos(glm::radians(app->camera.yaw)) * cos(glm::radians(app->camera.pitch));
+		direction.y = sin(glm::radians(app->camera.pitch));
+		direction.z = sin(glm::radians(app->camera.yaw)) * cos(glm::radians(app->camera.pitch));
+		app->camera.front = glm::normalize(direction);
+		app->viewMatrix = glm::lookAt(app->camera.position, app->camera.position + app->camera.front, app->camera.up);
+	}
+
 	if (app->input.keys[K_W])
 	{
-		app->cameraPosition += cameraSpeed * app->cameraFront;
-		app->viewMatrix = glm::lookAt(app->cameraPosition, app->cameraPosition + app->cameraFront, app->cameraUp);
+		app->camera.position += cameraSpeed * app->camera.front;
+		app->viewMatrix = glm::lookAt(app->camera.position, app->camera.position + app->camera.front, app->camera.up);
 	}
 	if (app->input.keys[K_S])
 	{
-		app->cameraPosition -= cameraSpeed * app->cameraFront;
-		app->viewMatrix = glm::lookAt(app->cameraPosition, app->cameraPosition + app->cameraFront, app->cameraUp);
+		app->camera.position -= cameraSpeed * app->camera.front;
+		app->viewMatrix = glm::lookAt(app->camera.position, app->camera.position + app->camera.front, app->camera.up);
 	}
 	if (app->input.keys[K_D])
 	{
-		app->cameraPosition += glm::normalize(glm::cross(app->cameraFront, app->cameraUp)) * cameraSpeed;
-		app->viewMatrix = glm::lookAt(app->cameraPosition, app->cameraPosition + app->cameraFront, app->cameraUp);
+		app->camera.position += glm::normalize(glm::cross(app->camera.front, app->camera.up)) * cameraSpeed;
+		app->viewMatrix = glm::lookAt(app->camera.position, app->camera.position + app->camera.front, app->camera.up);
 	}
 	if (app->input.keys[K_A])
 	{
-		app->cameraPosition -= glm::normalize(glm::cross(app->cameraFront, app->cameraUp)) * cameraSpeed;
-		app->viewMatrix = glm::lookAt(app->cameraPosition, app->cameraPosition + app->cameraFront, app->cameraUp);
+		app->camera.position -= glm::normalize(glm::cross(app->camera.front, app->camera.up)) * cameraSpeed;
+		app->viewMatrix = glm::lookAt(app->camera.position, app->camera.position + app->camera.front, app->camera.up);
 	}
 }
 
@@ -669,6 +693,8 @@ void Update(App* app)
 	if (!app->entities.empty()) {
 		app->entities[0].transform = app->modelMatrix;
 	}
+
+	CameraMovement(app);
 }
 
 void Render(App* app)
@@ -693,7 +719,7 @@ void Render(App* app)
 
 		// Update projection matrix in case window was resized
 		float aspectRatio = (float)app->displaySize.x / (float)app->displaySize.y;
-		app->projectionMatrix = glm::perspective(glm::radians(app->cameraFov), aspectRatio, 0.1f, 100.0f);
+		app->projectionMatrix = glm::perspective(glm::radians(app->camera.fov), aspectRatio, 0.1f, 100.0f);
 
 		// Pass matrices to shader
 		glUniformMatrix4fv(app->viewMatrixLocation, 1, GL_FALSE, glm::value_ptr(app->viewMatrix));

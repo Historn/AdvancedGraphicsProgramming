@@ -124,6 +124,18 @@ struct VertexV3V2
     glm::vec2 uv;
 };
 
+struct Camera
+{
+    // Camera properties
+    vec3 position;
+    vec3 target;
+    vec3 up;
+    vec3 front;
+    float fov;
+    f32 pitch;
+    f32 yaw;
+};
+
 struct App
 {
     // Loop
@@ -186,12 +198,7 @@ struct App
     GLuint projectionMatrixLocation;
     GLuint texturedMeshProgram_uTexture;
 
-    // Camera properties
-    vec3 cameraPosition;
-    vec3 cameraTarget;
-    vec3 cameraUp;
-    vec3 cameraFront;
-    float cameraFov;
+    Camera camera;
 
     // GUI
     int renderpass_selected = 0;
