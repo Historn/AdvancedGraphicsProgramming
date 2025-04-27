@@ -262,6 +262,8 @@ int main()
         GlobalFrameArenaHead = 0;
     }
 
+    CleanUp(&app);
+
     free(GlobalFrameArenaMemory);
 
     ImGui_ImplOpenGL3_Shutdown();
