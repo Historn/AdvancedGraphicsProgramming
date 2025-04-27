@@ -21,7 +21,7 @@ struct Transform
 	vec3 scale;
 	glm::mat4 transformMatrix;
 
-	void UpdateTransformations() 
+	void UpdateTransformations()
 	{
 		position = glm::vec3(transformMatrix[3]);
 		glm::extractEulerAngleXYZ(transformMatrix, rotation.x, rotation.y, rotation.z);
@@ -33,7 +33,6 @@ struct Transform
 
 struct Camera
 {
-	// Camera properties
 	vec3 position;
 	vec3 target;
 	vec3 up;
@@ -45,14 +44,14 @@ struct Camera
 	f32 yaw;
 };
 
-struct DirectionalLight 
+struct DirectionalLight
 {
 	glm::vec3 direction;
 	glm::vec3 color;
 	float intensity;
 };
 
-struct PointLight 
+struct PointLight
 {
 	glm::vec3 position;
 	glm::vec3 color;
@@ -134,11 +133,6 @@ struct Mesh
 	GLuint indexBufferHandle;
 };
 
-struct Shader
-{
-	
-};
-
 struct Material
 {
 	std::string name;
@@ -158,7 +152,7 @@ struct Program
 	GLuint             handle;
 	std::string        filepath;
 	std::string        programName;
-	u64                lastWriteTimestamp; // What is this for?
+	u64                lastWriteTimestamp;
 	VertexShaderLayout vertexInputLayout;
 };
 
@@ -166,6 +160,7 @@ enum Mode
 {
 	Mode_TexturedMesh,
 	Mode_Deferred,
+	Mode_DebugGBuffer,
 	Mode_Count
 };
 
@@ -177,12 +172,11 @@ struct VertexV3V2
 
 struct GBuffer
 {
-	GLuint fbo;               // Framebuffer object
-	GLuint albedoTexture;     // Albedo color
-	GLuint normalTexture;     // Normals
-	GLuint positionTexture;   // World positions
-	GLuint depthTexture;      // Depth
-	u32 deferredLightingProgramIdx; // Program for lighting pass
+	GLuint fbo;
+	GLuint albedoTexture;
+	GLuint normalTexture;
+	GLuint positionTexture;
+	GLuint depthTexture;
 };
 
 struct App
@@ -207,48 +201,33 @@ struct App
 	std::vector<Model>      models;
 	std::vector<Program>    programs;
 
-	// program indices
-	u32 texturedGeometryProgramIdx;
+	// Programs indices
 	u32 texturedMeshProgramIdx;
-
-	// texture indices
-	u32 diceTexIdx;
-	u32 whiteTexIdx;
-	u32 blackTexIdx;
-	u32 normalTexIdx;
-	u32 magentaTexIdx;
+	u32 geometryPassProgramIdx;
+	u32 deferredLightingProgramIdx;
+	u32 debugProgramIdx;
 
 	// Mode
 	Mode mode;
-
-	// Embedded geometry (in-editor simple meshes such as
-	// a screen filling quad, a cube, a sphere...)
-	GLuint embeddedVertices;
-	GLuint embeddedElements;
-
-	GLuint model;
-
-	// Location of the texture uniform in the textured quad shader
-	GLuint programUniformTexture;
 
 	// VAO object to link our screen filling quad with our textured quad shader
 	GLuint vao;
 
 	// Matrices for transformations
-	glm::mat4 modelMatrix;
 	glm::mat4 viewMatrix;
 	glm::mat4 projectionMatrix;
 
-	// Uniform locations
+#pragma region TexturedMeshRendering
+	// Textured Mesh uniform locations
 	GLuint modelMatrixLocation;
 	GLuint viewMatrixLocation;
 	GLuint projectionMatrixLocation;
 	GLuint texturedMeshProgram_uTexture;
+#pragma endregion
 
-	// Deferred Shading
+#pragma region DeferredRendering
+	/*DEFERRED SHADING*/
 	GBuffer gBuffer;
-
-	u32 geometryPassProgramIdx;
 
 	// GPass Uniform locations
 	GLuint geometryModelLoc;
@@ -257,21 +236,25 @@ struct App
 	GLuint geometryTexLoc;
 
 	// Locations for deferred lighting shader uniforms
-	GLuint lightingBufferTypeLoc;
+	GLuint lightingNumDirLightsLoc;
+	GLuint lightingNumPointLightsLoc;
 	GLuint lightingAlbedoTexLoc;
 	GLuint lightingNormalTexLoc;
 	GLuint lightingPositionTexLoc;
 	GLuint lightingDepthTexLoc;
 	GLuint lightPositionLoc;
 	GLuint viewPosLoc;
+#pragma endregion
 
-	// Entities
-	std::vector<Entity> entities;
-	u32 selectedEntity;
+#pragma region DebugGBufferRendering
+	// Debug GBuffer uniform locations
+	GLuint debugTextureLoc;
+	GLuint debugTexTypeLoc;
+	GLuint debugZnearLoc;
+	GLuint debugZfarLoc;
+#pragma endregion
 
-	// Camera
-	Camera camera;
-
+#pragma region Lights
 	// Lights
 	std::vector<DirectionalLight> dirLights;
 	std::vector<PointLight> pointLights;
@@ -282,6 +265,14 @@ struct App
 	u32 lightSphereVBO;
 	u32 lightSphereEBO;
 	int lightSphereIndexCount;
+#pragma endregion
+
+	// Entities
+	std::vector<Entity> entities;
+	u32 selectedEntity;
+
+	// Camera
+	Camera camera;
 
 	// Quad
 	GLuint quadVBO;
@@ -292,15 +283,23 @@ struct App
 
 void Init(App* app);
 
+#pragma region Initializers
 /*Initializers*/
 void InitCamera(App* app);
 
 void InitLights(App* app);
 
+void InitGBufferRendering(App* app);
+
 void InitDeferredRendering(App* app);
+
+void InitTexturedMeshRendering(App* app);
+
+void InitDebugGBufferRendering(App* app);
 
 void InitQuad(App* app);
 /*Initializers*/
+#pragma endregion
 
 void Gui(App* app);
 

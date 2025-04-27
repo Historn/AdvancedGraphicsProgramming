@@ -51,9 +51,6 @@
     <ClCompile Include="ThirdParty\stb\stb.cpp">
       <Filter>Stb</Filter>
     </ClCompile>
-    <ClCompile Include="Code\assimp_model_loading.cpp">
-      <Filter>Engine</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ThirdParty\imgui-docking\imconfig.h">
@@ -98,6 +95,15 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="WorkingDir\shaders.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="WorkingDir\deferred.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="WorkingDir\debug.glsl">
+      <Filter>Shaders</Filter>
+    </None>
+    <None Include="WorkingDir\geometry.glsl">
       <Filter>Shaders</Filter>
     </None>
   </ItemGroup>

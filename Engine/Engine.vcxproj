@@ -47,6 +47,9 @@
     <ClInclude Include="ThirdParty\stb\stb_image.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="WorkingDir\debug.glsl" />
+    <None Include="WorkingDir\deferred.glsl" />
+    <None Include="WorkingDir\geometry.glsl" />
     <None Include="WorkingDir\shaders.glsl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

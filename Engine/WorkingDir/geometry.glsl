@@ -1,7 +1,7 @@
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
-#ifdef SHOW_TEXTURED_MESH
+#ifdef GEOMETRY_PASS
 
 #if defined(VERTEX) ///////////////////////////////////////////////////
 
@@ -21,14 +21,14 @@ out vec3 vNormal;
 
 void main()
 {
-	vec4 worldPosition = uModel * vec4(aPosition, 1.0);
+    vec4 worldPosition = uModel * vec4(aPosition, 1.0);
     vPosition = worldPosition.xyz;
-
-	vTexCoord = aTexCoord;
-
-	vNormal = mat3(transpose(inverse(uModel))) * aNormal; // For correct normal transformation
-
-    // Set final position in clip space
+    
+    // For correct normal transformation
+    vNormal = mat3(transpose(inverse(uModel))) * aNormal;
+    
+    vTexCoord = aTexCoord;
+    
     gl_Position = uProjection * uView * worldPosition;
 }
 
@@ -40,11 +40,21 @@ in vec3 vNormal;
 
 uniform sampler2D uTexture;
 
-layout(location = 0) out vec4 oColor;
+// G-buffer outputs
+layout(location = 0) out vec4 gAlbedo;
+layout(location = 1) out vec3 gNormal;
+layout(location = 2) out vec3 gPosition;
 
 void main()
 {
-	oColor = texture(uTexture, vTexCoord);
+    // Store albedo color (RGB) from texture
+    gAlbedo = texture(uTexture, vTexCoord);
+    
+    // Store normalized normals
+    gNormal = normalize(vNormal);
+    
+    // Store fragment position in world space
+    gPosition = vPosition;
 }
 
 #endif
